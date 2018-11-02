@@ -70,7 +70,7 @@ def save(model, dst: str):
   ws = wb.add_worksheet()
   for row in range(len(model)):
     for col in range(len(model[row])):
-      ws.write(row, col, model[row][col])
+      ws.write_string(row, col, model[row][col])
   wb.close()
 
 def main(src: str, dst: str):
