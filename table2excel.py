@@ -11,37 +11,36 @@ class ParsingContext:
     self.lines = []
     self.rows = []
 
-def table_do_action(action, ctx):
-  from table_fsm import Action
-  if action == Action.ERROR:
-    print("Invalid table format at col %d in line %d" % (ctx.col, ctx.line))
-    exit(-1)
-  elif action == Action.APPEND:
-    ctx.buf += ctx.ch
-  elif action == Action.CELL:
-    ctx.cells.append(ctx.buf.strip())
-    ctx.buf = ''
-  elif action == Action.LINE:
-    ctx.lines.append(ctx.cells)
-    ctx.cells = []
-  elif action == Action.ROW:
-    cells = []
-    for i in range(len(ctx.lines[0])):
-      cells.append([])
-    for row in range(len(ctx.lines)):
-      for col in range(len(ctx.lines[row])):
-        if len(ctx.lines[row][col]) > 0:
-          cells[col].append(ctx.lines[row][col])
-    row = []
-    for c in cells:
-      row.append('\n'.join(c))
-    ctx.rows.append(row)
-    ctx.lines = []
+class ParsingDelegate:
+    def error(self, ctx, state = 0, event = 0):
+        print("Invalid table format at col %d in line %d" % (ctx.col, ctx.line))
+        exit(-1)
+    def append(self, ctx, state = 0, event = 0):
+        ctx.buf += ctx.ch
+    def cell(self, ctx, state = 0, event = 0):
+        ctx.cells.append(ctx.buf.strip())
+        ctx.buf = ''
+    def line(self, ctx, state = 0, event = 0):
+        ctx.lines.append(ctx.cells)
+        ctx.cells = []
+    def row(self, ctx, state = 0, event = 0):
+        cells = []
+        for i in range(len(ctx.lines[0])):
+            cells.append([])
+        for row in range(len(ctx.lines)):
+            for col in range(len(ctx.lines[row])):
+                if len(ctx.lines[row][col]) > 0:
+                    cells[col].append(ctx.lines[row][col])
+        row = []
+        for c in cells:
+            row.append('\n'.join(c))
+        ctx.rows.append(row)
+        ctx.lines = []
 
 def load(src: str):
-  from table_fsm import Event, FSM
+  from table_fsm import Event, StateMachine
   ctx = ParsingContext()
-  fsm = FSM(table_do_action)
+  fsm = StateMachine(ParsingDelegate())
   with open(src, 'r') as input:
     content = input.read(-1)
     for ch in content:
@@ -49,18 +48,18 @@ def load(src: str):
       if ch == '\n':
         ctx.line += 1
         ctx.col = 1
-        fsm.process(Event.LF, ctx)
+        fsm.process(ctx, Event.LF)
       elif ch == '+':
-        fsm.process(Event.PLUS, ctx)
+        fsm.process(ctx, Event.PLUS)
         ctx.col += 1
       elif ch == '-':
-        fsm.process(Event.MINUS, ctx)
+        fsm.process(ctx, Event.MINUS)
         ctx.col += 1
       elif ch == '|':
-        fsm.process(Event.PIPE, ctx)
+        fsm.process(ctx, Event.PIPE)
         ctx.col += 1
       else:
-        fsm.process(Event.OTHERS, ctx)
+        fsm.process(ctx, Event.OTHERS)
         ctx.col += 1
   return ctx.rows
 
