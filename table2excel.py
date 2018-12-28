@@ -1,4 +1,5 @@
 #! /usr/bin/python
+from table_fsm import Delegate, Event, StateMachine
 
 class ParsingContext:
   def __init__(self):
@@ -11,7 +12,7 @@ class ParsingContext:
     self.lines = []
     self.rows = []
 
-class ParsingDelegate:
+class ParsingDelegate(Delegate):
     def error(self, ctx, state = 0, event = 0):
         print("Invalid table format at col %d in line %d" % (ctx.col, ctx.line))
         exit(-1)
@@ -38,7 +39,6 @@ class ParsingDelegate:
         ctx.lines = []
 
 def load(src: str):
-  from table_fsm import Event, StateMachine
   ctx = ParsingContext()
   fsm = StateMachine(ParsingDelegate())
   with open(src, 'r') as input:
