@@ -13,30 +13,36 @@ class ParsingContext:
     self.rows = []
 
 class ParsingDelegate(Delegate):
-    def error(self, ctx, state = 0, event = 0):
-        print("Invalid table format at col %d in line %d" % (ctx.col, ctx.line))
-        exit(-1)
-    def append(self, ctx, state = 0, event = 0):
-        ctx.buf += ctx.ch
-    def cell(self, ctx, state = 0, event = 0):
-        ctx.cells.append(ctx.buf.strip())
-        ctx.buf = ''
-    def line(self, ctx, state = 0, event = 0):
-        ctx.lines.append(ctx.cells)
-        ctx.cells = []
-    def row(self, ctx, state = 0, event = 0):
-        cells = []
-        for i in range(len(ctx.lines[0])):
-            cells.append([])
-        for row in range(len(ctx.lines)):
-            for col in range(len(ctx.lines[row])):
-                if len(ctx.lines[row][col]) > 0:
-                    cells[col].append(ctx.lines[row][col])
-        row = []
-        for c in cells:
-            row.append('\n'.join(c))
-        ctx.rows.append(row)
-        ctx.lines = []
+  def error(self, ctx, state = 0, event = 0):
+    print("Invalid table format at col %d in line %d" % (ctx.col, ctx.line))
+    exit(-1)
+  def append(self, ctx, state = 0, event = 0):
+    ctx.buf += ctx.ch
+  def cell(self, ctx, state = 0, event = 0):
+    ctx.cells.append(ctx.buf.strip())
+    ctx.buf = ''
+  def line(self, ctx, state = 0, event = 0):
+    ctx.lines.append(ctx.cells)
+    ctx.cells = []
+  def row(self, ctx, state = 0, event = 0):
+    cells = []
+    for i in range(len(ctx.lines[0])):
+      cells.append([])
+    for row in range(len(ctx.lines)):
+      for col in range(len(ctx.lines[row])):
+        #if len(ctx.lines[row][col]) > 0:
+        #    cells[col].append(ctx.lines[row][col])
+        cells[col].append(ctx.lines[row][col])
+    row = []
+    for cell in cells:
+      if len(cell[len(cell) - 1]) > 0 and sum([len(x) for x in cell[:-1]]) == 0:
+        row.append(cell[len(cell) - 1])
+      elif sum([len(x) for x in cell]) == 0:
+        row.append(None)
+      else:
+        row.append('\n'.join(cell))
+    ctx.rows.append(row)
+    ctx.lines = []
 
 def load(src: str):
   ctx = ParsingContext()
@@ -69,7 +75,10 @@ def save(model, dst: str):
   ws = wb.add_worksheet()
   for row in range(len(model)):
     for col in range(len(model[row])):
-      ws.write_string(row, col, model[row][col])
+      if model[row][col]:
+        ws.write_string(row, col, model[row][col])
+      else:
+        ws.write_blank(row, col, None)
   wb.close()
 
 def main(src: str, dst: str):
