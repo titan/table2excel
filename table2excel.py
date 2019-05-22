@@ -1,5 +1,5 @@
 #! /usr/bin/python
-from table_fsm import Delegate, Event, StateMachine
+from table_fsm import Delegate, StateMachine
 
 class ParsingContext:
   def __init__(self):
@@ -13,34 +13,36 @@ class ParsingContext:
     self.rows = []
 
 class ParsingDelegate(Delegate):
-  def error(self, ctx, state = 0, event = 0):
+  def error(self, ctx):
     print("Invalid table format at col %d in line %d" % (ctx.col, ctx.line))
     exit(-1)
-  def append(self, ctx, state = 0, event = 0):
+  def append(self, ctx):
     ctx.buf += ctx.ch
-  def cell(self, ctx, state = 0, event = 0):
+  def cell(self, ctx):
     ctx.cells.append(ctx.buf.strip())
     ctx.buf = ''
-  def line(self, ctx, state = 0, event = 0):
+  def line(self, ctx):
     ctx.lines.append(ctx.cells)
     ctx.cells = []
-  def row(self, ctx, state = 0, event = 0):
+  def row(self, ctx):
     cells = []
     for i in range(len(ctx.lines[0])):
       cells.append([])
     for row in range(len(ctx.lines)):
       for col in range(len(ctx.lines[row])):
-        #if len(ctx.lines[row][col]) > 0:
-        #    cells[col].append(ctx.lines[row][col])
-        cells[col].append(ctx.lines[row][col])
+        if len(ctx.lines[row][col]) > 0:
+            cells[col].append(ctx.lines[row][col])
     row = []
     for cell in cells:
-      if len(cell[len(cell) - 1]) > 0 and sum([len(x) for x in cell[:-1]]) == 0:
-        row.append(cell[len(cell) - 1])
-      elif sum([len(x) for x in cell]) == 0:
-        row.append(None)
+      if len(cell) > 0:
+        content = '\n'.join(cell)
+        if content.startswith('----') or content.startswith('===='):
+          content = '\n' + content
+        if content.endswith('----') or content.endswith('===='):
+          content += '\n'
+        row.append(content)
       else:
-        row.append('\n'.join(cell))
+        row.append(None)
     ctx.rows.append(row)
     ctx.lines = []
 
@@ -54,18 +56,18 @@ def load(src: str):
       if ch == '\n':
         ctx.line += 1
         ctx.col = 1
-        fsm.process(ctx, Event.LF)
+        fsm.lf(ctx)
       elif ch == '+':
-        fsm.process(ctx, Event.PLUS)
+        fsm.plus(ctx)
         ctx.col += 1
       elif ch == '-':
-        fsm.process(ctx, Event.MINUS)
+        fsm.minus(ctx)
         ctx.col += 1
       elif ch == '|':
-        fsm.process(ctx, Event.PIPE)
+        fsm.pipe(ctx)
         ctx.col += 1
       else:
-        fsm.process(ctx, Event.OTHERS)
+        fsm.others(ctx)
         ctx.col += 1
   return ctx.rows
 
