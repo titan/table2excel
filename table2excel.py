@@ -72,16 +72,18 @@ def load(src: str):
   return ctx.rows
 
 def save(model, dst: str):
-  import xlsxwriter
-  wb = xlsxwriter.Workbook(dst)
-  ws = wb.add_worksheet()
-  for row in range(len(model)):
-    for col in range(len(model[row])):
-      if model[row][col]:
-        ws.write_string(row, col, model[row][col])
+  from openpyxl import Workbook
+  wb = Workbook(write_only = True)
+  ws = wb.create_sheet()
+  for rid in range(len(model)):
+    row = []
+    for cid in range(len(model[rid])):
+      if model[rid][cid]:
+        row.append(model[rid][cid])
       else:
-        ws.write_blank(row, col, None)
-  wb.close()
+        row.append(None)
+    ws.append(row)
+  wb.save(dst)
 
 def main(src: str, dst: str):
   model = load(src)
@@ -90,8 +92,15 @@ def main(src: str, dst: str):
 if __name__ == '__main__':
   import argparse
   import sys
+  import os.path
   parser = argparse.ArgumentParser()
   parser.add_argument("src", help="The table file")
-  parser.add_argument("dst", help="The execel file")
+  parser.add_argument("-d", "--dst", help="The excel file", default = None)
   args = parser.parse_args()
-  main(args.src, args.dst)
+  dst = args.dst
+  if dst == None:
+    path = os.path.dirname(args.src)
+    name = os.path.basename(args.src)
+    (n, e) = os.path.splitext(name)
+    dst = os.path.join(path, n + ".xlsx")
+  main(args.src, dst)
