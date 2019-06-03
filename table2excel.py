@@ -79,7 +79,6 @@ def load(src: str):
         fsm.minus(ctx)
         ctx.col += 1
       elif ch == '|':
-        ctx.col
         splitors = [1]
         for cellwidth in ctx.cellwidths:
           splitors.append(splitors[-1] + cellwidth + 1)
