@@ -11,16 +11,29 @@ class ParsingContext:
     self.cells = []
     self.lines = []
     self.rows = []
+    self.cellwidths = []
+    self.cellwidth = 0
+    self.cellindex = 0
 
 class ParsingDelegate(Delegate):
   def error(self, ctx):
     print("Invalid table format at col %d in line %d" % (ctx.col, ctx.line))
     exit(-1)
+  def reset_cell_index(self, ctx):
+    ctx.cellindex = 0
+  def append_width(self, ctx):
+    ctx.cellwidths.append(ctx.cellwidth)
+  def reset_width(self, ctx):
+    ctx.cellwidth = 0
+  def incr_width(self, ctx):
+    ctx.cellwidth += 1
   def append(self, ctx):
     ctx.buf += ctx.ch
   def cell(self, ctx):
     ctx.cells.append(ctx.buf.strip())
     ctx.buf = ''
+  def incr_cell_index(self, ctx):
+    ctx.cellindex += 1
   def line(self, ctx):
     ctx.lines.append(ctx.cells)
     ctx.cells = []
@@ -45,6 +58,8 @@ class ParsingDelegate(Delegate):
         row.append(None)
     ctx.rows.append(row)
     ctx.lines = []
+  def clear_widths(self, ctx):
+    ctx.cellwidths = []
 
 def load(src: str):
   ctx = ParsingContext()
@@ -64,7 +79,14 @@ def load(src: str):
         fsm.minus(ctx)
         ctx.col += 1
       elif ch == '|':
-        fsm.pipe(ctx)
+        ctx.col
+        splitors = [1]
+        for cellwidth in ctx.cellwidths:
+          splitors.append(splitors[-1] + cellwidth + 1)
+        if ctx.col in splitors:
+          fsm.pipe(ctx)
+        else:
+          fsm.pipe_in_cell(ctx)
         ctx.col += 1
       else:
         fsm.others(ctx)
